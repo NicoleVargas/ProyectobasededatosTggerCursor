@@ -1,0 +1,78 @@
+-- TRIGGER
+
+CREATE OR REPLACE FUNCTION asignacion_balas() RETURNS TRIGGER AS $asignacion_balas$
+DECLARE BEGIN
+if(
+    (select
+     count(pedido_servicio.id_guardia) from
+     pedido_servicio
+     inner join guardia on guardia.id_guardia = pedido_servicio.id_guardia
+     inner join servicios_guardiania on pedido_servicio.id_servicio = servicios_guardiania.id_servicio
+     where servicios_guardiania.nombre_servicio = 'Cambio de armamento'
+)>3) then
+     RAISE notice '%','No se puede asignar de nuevo';
+     end if;
+     return null;
+END;
+$asignacion_balas$ LANGUAGE 'plpgsql';
+   
+CREATE TRIGGER asignacion_balas2 AFTER INSERT OR UPDATE 
+    ON pedido_servicio FOR EACH ROW 
+    EXECUTE PROCEDURE asignacion_balas();
+	
+	
+insert into pedido_servicio values(2,3,_,'2021/05/18');
+
+
+
+
+--Cursor
+Do$$ 
+--Declaramos el cursor
+declare 
+	cursor_contratos cursor for 
+	select extract (year from facturacion.fecha_fact) as anio,
+	contrato.nombre_contrato as tipo_contrato,
+	sum(facturacion.total_fact )as Total_Ingresos,
+	count(contrato.id_empresa) as Cantidad_empresas
+	from empresa
+	inner join contrato on contrato.id_empresa = empresa.id_empresa
+	inner join facturacion on contrato.id_contrato = facturacion.id_contrato
+	group by facturacion.fecha_fact,contrato.nombre_contrato,facturacion.total_fact;
+begin
+END $$
+lENGUAGE 'plpgsql';
+-- abrir el cursor
+open cursor_contratos;
+-- recorrer el cursor 
+fetch cursor_contratos;
+
+
+
+
+
+--Procedimiento almacenado
+
+
+create or replace function Guardias_empresa(varchar) returns integer
+as
+$$
+select 
+count(guardia.id_contrato)
+from guardia 
+inner join contrato on contrato.id_contrato = guardia.id_contrato
+inner join empresa on empresa.id_empresa=contrato.id_empresa
+$$
+Language sql
+
+select Guardias_empresa ('BODEGAS TIA')
+
+
+--IREPORT
+
+select 
+extract (year from facturacion.fecha_fact) as anio,
+sum(facturacion.total_fact )as ingresos
+from facturacion
+group by facturacion.fecha_fact 
+order by extract (year from facturacion.fecha_fact) asc
